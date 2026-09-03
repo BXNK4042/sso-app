@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบยืม-คืนอุปกรณ์ไอที (Equipment Loan System) - Protected</title>
+  <script>
+    if (localStorage.getItem('theme') === 'dark') {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+  </script>
+  <link rel="stylesheet" href="/equipment/public/style.css?v=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@500;600&family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- Navigation Header -->
+  <header class="navbar">
+    <div class="nav-brand">
+      <div class="nav-brand-icon">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+          <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+        </svg>
+      </div>
+      <div class="nav-brand-text">
+        <div class="brand-title">Equipment Loan System</div>
+        <div class="brand-subtitle">Web App 2 • Protected Resource</div>
+      </div>
+    </div>
+
+    <div class="nav-user">
+      <button class="btn-theme-toggle" id="themeToggleBtn" onclick="toggleTheme()" title="สลับธีม สว่าง/มืด">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+      </button>
+
+      <a href="/equipment/" class="btn-nav-action" title="กลับหน้าหลักของแอพยืมอุปกรณ์">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+          <polyline points="9 22 9 12 15 12 15 22"></polyline>
+        </svg>
+        <span>หน้าหลัก (Home)</span>
+      </a>
+
+      <div class="user-badge-pill">
+        <div class="user-avatar">{{ (user.sub or 'U')[0] | upper }}</div>
+        <div class="user-info">
+          <div class="user-name">{{ user.sub or 'User' }}</div>
+        </div>
+        <span class="user-role-badge">{{ user.role or 'Student' }}</span>
+      </div>
+
+      <a href="/equipment/logout" class="btn-nav-action" title="ออกจากระบบ">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+          <polyline points="16 17 21 12 16 7"></polyline>
+          <line x1="21" y1="12" x2="9" y2="12"></line>
+        </svg>
+        <span>Logout</span>
+      </a>
+    </div>
+  </header>
+
+  <div class="main-container">
+    <!-- Top Alert Banner -->
+    <div id="alertBox" class="alert-banner hidden"></div>
+
+    <!-- Equipment Management Card -->
+    <div class="equip-card">
+      <div class="equip-header">
+        <div class="equip-title-group">
+          <h2>รายการอุปกรณ์ไอทีและเครื่องมือแล็บ</h2>
+          <p>เลือกอุปกรณ์ที่ต้องการยืม หรือกดส่งคืนอุปกรณ์ตามสิทธิ์การใช้งาน (AuthZ)</p>
+        </div>
+        <div class="legend-group">
+          <div class="legend-item">
+            <span class="status-dot available"></span>
+            <span>พร้อมให้ยืม (Available)</span>
+          </div>
+          {% if user.role == 'Admin' %}
+          <div class="legend-item">
+            <span class="status-dot booked"></span>
+            <span>ถูกยืมแล้ว</span>
+          </div>
+          {% endif %}
+          <div class="legend-item">
+            <span class="status-dot yours"></span>
+            <span>อุปกรณ์ที่คุณยืม</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Quick Stats Bar -->
+      <div class="stats-overview-bar">
+        <div class="stat-box">
+          <div class="stat-number" id="statTotal">{{ equipments | length }}</div>
+          <div class="stat-label">อุปกรณ์ที่เข้าถึงได้</div>
+        </div>
+        <div class="stat-box stat-available">
+          <div class="stat-number" id="statAvailable">
+            {% set count_avail = namespace(n=0) %}
+            {% for eq in equipments %}{% if eq.status != 'borrowed' %}{% set count_avail.n = count_avail.n + 1 %}{% endif %}{% endfor %}
+            {{ count_avail.n }}
+          </div>
+          <div class="stat-label">อุปกรณ์พร้อมให้ยืม</div>
+        </div>
+        <div class="stat-box {% if user.role == 'Admin' %}stat-booked{% else %}stat-available{% endif %}">
+          <div class="stat-number" id="statBorrowed">
+            {% set count_borrowed = namespace(n=0) %}
+            {% for eq in equipments %}{% if eq.status == 'borrowed' %}{% set count_borrowed.n = count_borrowed.n + 1 %}{% endif %}{% endfor %}
+            {{ count_borrowed.n }}
+          </div>
+          <div class="stat-label">{% if user.role == 'Admin' %}อุปกรณ์ที่ถูกยืมอยู่{% else %}อุปกรณ์ที่คุณยืมไว้{% endif %}</div>
+        </div>
+      </div>
+
+      <div class="equipments-grid" id="equipmentsGrid">
+        <!-- Jinja2 Initial Server Render -->
+        {% for eq in equipments %}
+          {% set is_yours = (eq.borrowed_by == user.sub) %}
+          {% set is_borrowed = (eq.status == 'borrowed') %}
+          {% set status_class = 'yours' if is_yours else ('booked' if is_borrowed else 'available') %}
+          {% set status_text = 'ยืมโดยคุณ' if is_yours else (('ยืมโดย ' ~ eq.borrowed_by) if is_borrowed else 'พร้อมให้ยืม') %}
+
+          <div class="equip-item-card {{ status_class }}">
+            <div class="item-meta-top">
+              <span class="item-id-label">{{ eq.id }}</span>
+              <span class="item-category-tag">{{ eq.category }}</span>
+            </div>
+
+            <div>
+              <div class="item-name-heading">{{ eq.name }}</div>
+              <div style="margin-top: 6px;">
+                <span class="status-pill {{ status_class }}">{{ status_text }}</span>
+              </div>
+            </div>
+            
+            <div class="item-details-body">
+              <div class="item-detail-row">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                <span>{{ eq.due_date if eq.due_date else 'พร้อมเบิกใช้งานได้ทันที' }}</span>
+              </div>
+            </div>
+
+            <div>
+              {% if not is_borrowed %}
+                <button class="item-btn-action btn-borrow-action" onclick="borrowEquipment('{{ eq.id }}')">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M5 12h14"></path>
+                    <path d="M12 5l7 7-7 7"></path>
+                  </svg>
+                  <span>กดยืมอุปกรณ์นี้</span>
+                </button>
+              {% elif is_yours or user.role == 'Admin' %}
+                <button class="item-btn-action btn-return-action" onclick="returnEquipment('{{ eq.id }}')">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="1 4 1 10 7 10"></polyline>
+                    <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                  </svg>
+                  <span>ส่งคืนอุปกรณ์</span>
+                </button>
+              {% else %}
+                <button class="item-btn-action btn-disabled-action" disabled>มีผู้ยืมอยู่</button>
+              {% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentUser = {
+      sub: "{{ user.sub or 'User' }}",
+      role: "{{ user.role or 'Student' }}"
+    };
+
+    function initTheme() {
+      const saved = localStorage.getItem('theme');
+      const isDark = saved === 'dark';
+      document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+      updateThemeIcon(isDark);
+    }
+
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute('data-theme');
+      const isDark = current === 'dark';
+      const newTheme = isDark ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+      updateThemeIcon(!isDark);
+    }
+
+    function updateThemeIcon(isDark) {
+      const btn = document.getElementById('themeToggleBtn');
+      if (!btn) return;
+      if (isDark) {
+        btn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>`;
+        btn.setAttribute('title', 'เปลี่ยนเป็นธีมสว่าง');
+      } else {
+        btn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
+        btn.setAttribute('title', 'เปลี่ยนเป็นธีมมืด');
+      }
+    }
+
+    initTheme();
+
+    function renderEquipments(equipments) {
+      const grid = document.getElementById('equipmentsGrid');
+      grid.innerHTML = '';
+
+      let availCount = 0;
+      let borrowedCount = 0;
+
+      equipments.forEach(eq => {
+        const isYours = eq.borrowed_by === currentUser.sub;
+        const isBorrowed = eq.status === 'borrowed';
+        let statusClass = 'available';
+        let statusText = 'พร้อมให้ยืม';
+
+        if (isBorrowed) {
+          borrowedCount++;
+          statusClass = isYours ? 'yours' : 'booked';
+          statusText = isYours ? 'ยืมโดยคุณ' : `ยืมโดย ${eq.borrowed_by}`;
+        } else {
+          availCount++;
+        }
+
+        const card = document.createElement('div');
+        card.className = `equip-item-card ${statusClass}`;
+        card.innerHTML = `
+          <div class="item-meta-top">
+            <span class="item-id-label">${eq.id}</span>
+            <span class="item-category-tag">${eq.category}</span>
+          </div>
+
+          <div>
+            <div class="item-name-heading">${eq.name}</div>
+            <div style="margin-top: 6px;">
+              <span class="status-pill ${statusClass}">${statusText}</span>
+            </div>
+          </div>
+          
+          <div class="item-details-body">
+            <div class="item-detail-row">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+              <span>${eq.due_date ? eq.due_date : 'พร้อมเบิกใช้งานได้ทันที'}</span>
+            </div>
+          </div>
+
+          <div>
+            ${
+              !isBorrowed 
+                ? `<button class="item-btn-action btn-borrow-action" onclick="borrowEquipment('${eq.id}')">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M5 12h14"></path>
+                      <path d="M12 5l7 7-7 7"></path>
+                    </svg>
+                    <span>กดยืมอุปกรณ์นี้</span>
+                  </button>`
+                : (isYours || currentUser.role === 'Admin')
+                  ? `<button class="item-btn-action btn-return-action" onclick="returnEquipment('${eq.id}')">
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="1 4 1 10 7 10"></polyline>
+                        <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                      </svg>
+                      <span>ส่งคืนอุปกรณ์</span>
+                    </button>`
+                  : `<button class="item-btn-action btn-disabled-action" disabled>มีผู้ยืมอยู่</button>`
+            }
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+
+      const totalEl = document.getElementById('statTotal');
+      const availEl = document.getElementById('statAvailable');
+      const borrowedEl = document.getElementById('statBorrowed');
+      if (totalEl) totalEl.textContent = equipments.length;
+      if (availEl) availEl.textContent = availCount;
+      if (borrowedEl) borrowedEl.textContent = borrowedCount;
+    }
+
+    async function borrowEquipment(id) {
+      try {
+        const res = await fetch('/equipment/api/borrow', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ equipmentId: id, dueDate: 'คืนภายใน 17:00 วันนี้' })
+        });
+        const result = await res.json();
+        showAlert(result.message, result.success ? 'success' : 'error');
+        if (result.success) renderEquipments(result.equipments);
+      } catch (e) {
+        showAlert('เกิดข้อผิดพลาด: ' + e.message, 'error');
+      }
+    }
+
+    async function returnEquipment(id) {
+      try {
+        const res = await fetch('/equipment/api/return', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ equipmentId: id })
+        });
+        const result = await res.json();
+        showAlert(result.message, result.success ? 'success' : 'error');
+        if (result.success) renderEquipments(result.equipments);
+      } catch (e) {
+        showAlert('เกิดข้อผิดพลาด: ' + e.message, 'error');
+      }
+    }
+
+    function showAlert(msg, type) {
+      const box = document.getElementById('alertBox');
+      box.textContent = msg;
+      box.className = `alert-banner alert-${type}`;
+      setTimeout(() => {
+        box.className = 'alert-banner hidden';
+      }, 4000);
+    }
+  </script>
+</body>
+</html>
