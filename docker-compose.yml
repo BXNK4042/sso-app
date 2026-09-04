@@ -1,0 +1,89 @@
+
+services:
+  # ==========================================
+  # Layer 3: FreeRADIUS (Your Service / First)
+  # ==========================================
+  radius:
+    build:
+      context: ./radius
+      dockerfile: Dockerfile
+    container_name: sso-radius
+    restart: unless-stopped
+    ports:
+      # FreeRADIUS listens strictly over UDP
+      - "1812:1812/udp"
+      - "1813:1813/udp"
+    volumes:
+      # Live reload config files during development without rebuilding
+      - ./radius/config/radiusd.conf:/etc/raddb/radiusd.conf:ro
+      - ./radius/config/clients.conf:/etc/raddb/clients.conf:ro
+      - ./radius/config/users:/etc/raddb/users:ro
+      - ./radius/config/ldap.conf:/etc/raddb/ldap.conf:ro
+    networks:
+      - sso-net
+
+  # ==========================================
+  # Layer 1: LDAP Server (OpenLDAP)
+  # ==========================================
+  ldap:
+    image: osixia/openldap:latest
+    container_name: sso-ldap
+    restart: unless-stopped
+    ports:
+      - "389:389"
+      - "636:636"
+    environment:
+      # Admin credentials
+      LDAP_ORGANISATION: "SSO Organization"
+      LDAP_DOMAIN: "example.com"
+      LDAP_ADMIN_PASSWORD: "admin_password"
+      LDAP_CONFIG_PASSWORD: "config_password"
+      # Additional configuration
+      LDAP_TLS: "false"
+      LDAP_READONLY_USER: "true"
+      LDAP_READONLY_USER_USERNAME: "readonly"
+      LDAP_READONLY_USER_PASSWORD: "readonly_password"
+    volumes:
+      # Persist LDAP data
+      - ldap-data:/var/lib/ldap
+      - ldap-config:/etc/ldap/slapd.d
+    networks:
+      - sso-net
+
+  # ==========================================
+  # Layer 2: LDAP Web UI (phpLDAPAdmin - Optional)
+  # ==========================================
+  phpldapadmin:
+    image: osixia/phpldapadmin:latest
+    container_name: sso-ldap-admin
+    restart: unless-stopped
+    ports:
+      - "8443:443"
+    environment:
+      PHPLDAPADMIN_LDAP_HOSTS: "ldap"
+      # PHPLDAPADMIN_HTTPS: "false"
+    depends_on:
+      - ldap
+    networks:
+      - sso-net
+
+  # ==========================================
+  # Layer 5: Database (Bank - SQLite/DB)
+  # ==========================================
+  # database:
+  #   image: alpine:latest
+  #   container_name: sso-db
+  #   volumes:
+  #     - ./database/data:/data
+  #   networks:
+  #     - sso-net
+
+networks:
+  sso-net:
+    driver: bridge
+
+volumes:
+  ldap-data:
+    driver: local
+  ldap-config:
+    driver: local

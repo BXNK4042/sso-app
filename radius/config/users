@@ -1,0 +1,11 @@
+# Test user 1
+"onefirst" Cleartext-Password := "password123"
+    Reply-Message = "Hello first, SSO login successful"
+
+# Test user 2
+"bob" Cleartext-Password := "securepass456"
+    Reply-Message = "Hello Bob, SSO login successful"
+
+# Test user 3
+john Cleartext-Password := "password123"
+    Reply-Message = "Hello John, SSO login successful"
