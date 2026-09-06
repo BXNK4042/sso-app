@@ -1,0 +1,33 @@
+services:
+  reverse-proxy:
+    image: nginx:alpine
+    container_name: reverse-proxy
+    ports:
+      - "9999:80"
+    volumes:
+      - ./nginx:/etc/nginx/conf.d:ro
+    depends_on:
+      - web-app-1
+      - web-app-2
+    networks:
+      - sso-network
+
+  web-app-1:
+    build: ./web-app-1
+    container_name: app1-service
+    ports:
+      - "5000:5000"
+    networks:
+      - sso-network
+
+  web-app-2:
+    build: ./web-app-2
+    container_name: app2-service
+    ports:
+      - "5001:5001"
+    networks:
+      - sso-network
+
+networks:
+  sso-network:
+    driver: bridge
