@@ -17,6 +17,10 @@ services:
     container_name: app1-service
     ports:
       - "5000:5000"
+    environment:
+      DB_PATH: /data/web-app-1.db
+    volumes:
+      - ./database/web-app-1.db:/data/web-app-1.db
     networks:
       - sso-network
 
@@ -25,6 +29,10 @@ services:
     container_name: app2-service
     ports:
       - "5001:5001"
+    environment:
+      DB_PATH: /data/web-app-2.db
+    volumes:
+      - ./database/web-app-2.db:/data/web-app-2.db
     networks:
       - sso-network
 

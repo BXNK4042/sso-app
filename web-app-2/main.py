@@ -68,7 +68,9 @@ PUBLIC_SUBDIR = os.path.join(BASE_DIR, "public")
 
 TEMPLATES_DIR = VIEWS_SUBDIR if os.path.exists(VIEWS_SUBDIR) else BASE_DIR
 PUBLIC_DIR = PUBLIC_SUBDIR if os.path.exists(PUBLIC_SUBDIR) else BASE_DIR
-DB_PATH = os.getenv("DB_PATH", os.path.join(BASE_DIR, "equipment.db"))
+DB_PATH = os.getenv(
+    "DB_PATH", os.path.abspath(os.path.join(BASE_DIR, "..", "database", "web-app-2.db"))
+)
 
 # =============================================================================
 # FastAPI Application & Middleware Initialization
