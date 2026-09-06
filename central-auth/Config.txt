@@ -1,0 +1,17 @@
+# web-app
+	check Http Request Header cookie = "sso_auth_token"
+	Secret Key: kmitl_chumphon_sso_secret_key_2026 AGR:HS256
+	if check error:
+		Redirect --> /auth/login?redirect=/lab/
+	Payload --> sub:stu_id  role:student/admin
+		
+# Nginx
+	if /auth/ --> proxy_pass http://central-auth:3000;
+
+# FreeRADIUS
+	update user/pass --> mods-config/files/authorize 
+		Format: student01 Cleartext-Password := "pass1234"
+		restart container radius
+	set --> require_message_authenticator = no
+	Shared Secret: testing123
+	port : 1812 / Container name: freeradius

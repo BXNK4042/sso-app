@@ -1,0 +1,6 @@
+fastapi           # เฟรมเวิร์กหลักสำหรับทำเว็บ API
+uvicorn           # ตัวเซิร์ฟเวอร์สำหรับรัน FastAPI
+pyjwt             # ตัวช่วยสร้างและถอดรหัส Token JWT
+pyrad             # ตัวเชื่อมต่อและสื่อสารกับ FreeRADIUS
+jinja2            # เทมเพลตเรนเดอร์หน้า HTML
+python-multipart  # ตัวช่วยอ่าน Form Data จากฟอร์มล็อกอิน
