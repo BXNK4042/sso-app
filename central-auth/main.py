@@ -15,8 +15,8 @@ import pyrad.packet                            # โมดูลบรรจุ�
 # ==============================================================================
 # นำเข้าเครื่องมือจากเฟรมเวิร์ก FastAPI สำหรับสร้างเว็บเซิร์ฟเวอร์
 # ==============================================================================
-from fastapi import FastAPI, Request, Form, status     # ส่วนประกอบหลักของ FastAPI: แอปรองรับ Request, ข้อมูลแบบ Form และ HTTP Status Code
-from fastapi.responses import HTMLResponse, RedirectResponse  # อ็อบเจกต์สำหรับส่งหน้าเว็บ HTML และคำสั่ง Redirect ไปยัง URL อื่น
+from fastapi import FastAPI, HTTPException, Request, status
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 
 # ------------------------------------------------------------------------------
 # 1. กำหนดค่าเริ่มต้นของระบบ (Configuration & Environment Variables)
@@ -262,47 +262,56 @@ async def login_page(request: Request, redirect: str = "/lab/", error: str = Non
 # ------------------------------------------------------------------------------
 @app.post("/login")
 @app.post("/auth/login")
-async def login_handler(
-    username: str = Form(...),              # รับค่าชื่อผู้ใช้จากแบบฟอร์ม
-    password: str = Form(...),              # รับค่ารหัสผ่านจากแบบฟอร์ม
-    redirect_url: str = Form("/lab/")       # รับค่า URL ปลายทาง (ค่าเริ่มต้นคือ /lab/)
-):
-    """รับข้อมูลล็อกอิน ตรวจสอบกับ RADIUS และออกบัตรผ่าน JWT Token บรรจุลง Cookie"""
-    # ตรวจสอบสิทธิ์ผู้ใช้ด้วยการส่งไปเช็คกับ FreeRADIUS Server
+async def login_handler(request: Request):
+    """Authenticate JSON API clients and browser form submissions through RADIUS."""
+    is_json_request = request.headers.get("content-type", "").startswith("application/json")
+
+    if is_json_request:
+        credentials = await request.json()
+    else:
+        credentials = await request.form()
+
+    username = str(credentials.get("username", "")).strip()
+    password = str(credentials.get("password", ""))
+    redirect_url = str(credentials.get("redirect_url", "/lab/"))
+
+    if not username or not password:
+        raise HTTPException(status_code=422, detail="Username and password are required")
+
     if not authenticate_with_radius(username, password):
-        # หากรหัสผ่านผิด ให้ดีดกลับไปหน้าฟอร์มเดิมพร้อมพารามิเตอร์แจ้งเตือน error
+        if is_json_request:
+            raise HTTPException(status_code=401, detail="Invalid username or password")
         return RedirectResponse(
             url=f"login?redirect={redirect_url}&error=1",
             status_code=status.HTTP_303_SEE_OTHER
         )
 
-    # กำหนดสิทธิ์การใช้งาน (จำแนกเบื้องต้นจากชื่อผู้ใช้)
     user_role = "admin" if ("admin" in username.lower() or "teacher" in username.lower()) else "student"
-
-    # จัดเตรียมชุดข้อมูลที่จะฝังลงในบัตรผ่านดิจิทัล (JWT Payload)
     payload = {
-        "sub": username,                                   # ชื่อผู้ใช้งานหรือรหัสนักศึกษา (Subject Identifier)
-        "name": username,                                  # ชื่อสำหรับแสดงผลบนแอปพลิเคชัน
-        "role": user_role,                                 # บทบาทหรือสิทธิ์การเข้าถึงของผู้ใช้งาน
-        "exp": datetime.utcnow() + timedelta(hours=2)      # กำหนดระยะเวลาหมดอายุของบัตร (2 ชั่วโมงนับจากเวลาปัจจุบัน)
+        "sub": username,
+        "name": username,
+        "role": user_role,
+        "exp": datetime.utcnow() + timedelta(hours=2)
     }
-
-    # ผลิตและลงลายเซ็นกำกับบน Token ด้วยอัลกอริทึม HS256 และ JWT_SECRET
     token = jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
-    # สร้างคำสั่ง HTTP 303 Redirect เพื่อส่งผู้ใช้กลับไปยังแอปพลิเคชันปลายทาง
+    if is_json_request:
+        return JSONResponse(content={
+            "success": True,
+            "message": "Authentication successful",
+            "access_token": token,
+            "token_type": "bearer",
+            "user": {"username": username, "role": user_role}
+        })
+
     response = RedirectResponse(url=redirect_url, status_code=status.HTTP_303_SEE_OTHER)
-
-    # ฝัง JWT Token ลงในคุกกี้ตามมาตรฐานความปลอดภัยสูง
     response.set_cookie(
-        key=COOKIE_NAME,           # ชื่อคุกกี้ 'sso_auth_token'
-        value=token,               # ตัวข้อความ Token ดิจิทัล
-        httponly=True,             # ป้องกันไม่ให้ JavaScript ขโมยข้อมูล (ป้องกันการโจมตี XSS)
-        path="/",                  # อนุญาตให้ใช้งานคุกกี้นี้ได้ในทุก Path ของระบบเครือข่าย
-        samesite="lax"             # ป้องกันการยิงคำขอข้ามไซต์ (CSRF Protection) ในระดับมาตรฐาน
+        key=COOKIE_NAME,
+        value=token,
+        httponly=True,
+        path="/",
+        samesite="lax"
     )
-
-    # ส่งคำสั่ง Redirect พร้อมแนบคุกกี้กลับไปยังผู้ใช้งาน
     return response
 
 

@@ -12,15 +12,35 @@ services:
     networks:
       - sso-network
 
+  central-auth:
+    build: ./central-auth
+    container_name: central-auth
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    environment:
+      PORT: "4000"
+      RADIUS_HOST: radius
+      RADIUS_SECRET: ${RADIUS_SECRET:-sso_secret_123}
+      JWT_SECRET: ${JWT_SECRET:-super-secure-jwt-sso-secret-key-2026}
+    depends_on:
+      - radius
+    networks:
+      - sso-network
+
   web-app-1:
     build: ./web-app-1
     container_name: app1-service
     ports:
       - "5000:5000"
     environment:
+      AUTH_SERVICE_URL: http://central-auth:4000/auth/login
       DB_PATH: /data/web-app-1.db
+      JWT_SECRET: ${JWT_SECRET:-super-secure-jwt-sso-secret-key-2026}
     volumes:
       - ./database/web-app-1.db:/data/web-app-1.db
+    depends_on:
+      - central-auth
     networks:
       - sso-network
 
@@ -30,9 +50,13 @@ services:
     ports:
       - "5001:5001"
     environment:
+      AUTH_SERVICE_URL: http://central-auth:4000/auth/login
       DB_PATH: /data/web-app-2.db
+      JWT_SECRET: ${JWT_SECRET:-super-secure-jwt-sso-secret-key-2026}
     volumes:
       - ./database/web-app-2.db:/data/web-app-2.db
+    depends_on:
+      - central-auth
     networks:
       - sso-network
 
