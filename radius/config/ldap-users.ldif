@@ -1,18 +1,18 @@
 # Sample LDAP User Entries
 # Add these users to your OpenLDAP server for testing
 
-# Test user 1: john
-dn: uid=john,ou=users,dc=example,dc=com
+# Test user 1: first
+dn: uid=first,ou=users,dc=example,dc=com
 objectClass: inetOrgPerson
 objectClass: posixAccount
-uid: john
-cn: John Doe
-sn: Doe
+uid: first
+cn: Vutt A.
+sn: A
 userPassword: {SSHA}password_hash_here
 loginShell: /bin/bash
 uidNumber: 1001
 gidNumber: 1001
-homeDirectory: /home/john
+homeDirectory: /home/first
 
 # Test user 2: jane
 dn: uid=jane,ou=users,dc=example,dc=com

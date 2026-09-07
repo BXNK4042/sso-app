@@ -1,9 +1,10 @@
 FROM alpine:latest
 
-# Add freeradius-ldap alongside the core packages
+# Add freeradius-sql and freeradius-postgresql
 RUN apk update && apk add --no-cache \
     freeradius \
-    freeradius-ldap \
+    freeradius-sql \
+    freeradius-postgresql \
     freeradius-utils
 
 # Copy your configuration files

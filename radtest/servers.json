@@ -1,0 +1,13 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "SSO Database (radius)",
+      "Group": "Servers",
+      "Host": "sso-postgres",
+      "Port": 5432,
+      "MaintenanceDB": "radius",
+      "Username": "radius",
+      "SSLMode": "prefer"
+    }
+  }
+}
