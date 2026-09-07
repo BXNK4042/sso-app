@@ -7,8 +7,33 @@ services:
     volumes:
       - ./nginx:/etc/nginx/conf.d:ro
     depends_on:
+      - central-auth
       - web-app-1
       - web-app-2
+    networks:
+      - sso-network
+
+  central-auth:
+    build: ./central-auth
+    container_name: central-auth-service
+    ports:
+      - "8000:8000"
+    depends_on:
+      - database
+    networks:
+      - sso-network
+
+  database:
+    image: postgres:15-alpine
+    container_name: sso-postgres
+    environment:
+      POSTGRES_DB: sso_db
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password123
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - sso-network
 
