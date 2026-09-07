@@ -51,7 +51,7 @@ COOKIE_NAME: str = os.getenv("COOKIE_NAME", "sso_token")
 AUTH_SERVICE_URL: str = os.getenv("AUTH_SERVICE_URL", "http://central-auth:4000/auth/login")
 
 # ค่าคงที่สำหรับ Business Logic และ Security
-ROLE_ADMIN: str = "Admin"
+ROLE_ADMIN: str = "admin"
 STATUS_AVAILABLE: str = "available"
 STATUS_BORROWED: str = "borrowed"
 DEFAULT_DUE_DATE: str = "คืนภายใน 17:00 วันนี้"
@@ -340,7 +340,7 @@ async def public_home_page(
         "auth_required": "กรุณาเข้าสู่ระบบ (Login) เพื่อรับ Token ก่อนเข้าใช้งานหน้าระบบยืมอุปกรณ์",
         "invalid_token": "บัตรผ่าน (Token) หมดอายุหรือไม่ถูกต้อง กรุณาเข้าสู่ระบบใหม่อีกครั้ง"
     }
-    error_message = error_messages.get(error)
+    error_message = error_messages.get(error) if error else None
 
     return templates.TemplateResponse(
         request=request,

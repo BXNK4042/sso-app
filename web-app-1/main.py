@@ -51,7 +51,7 @@ COOKIE_NAME: str = os.getenv("COOKIE_NAME", "sso_token")
 AUTH_SERVICE_URL: str = os.getenv("AUTH_SERVICE_URL", "http://central-auth:4000/auth/login")
 
 # ค่าคงที่สำหรับ Business Logic และ Security
-ROLE_ADMIN: str = "Admin"
+ROLE_ADMIN: str = "admin"
 STATUS_AVAILABLE: str = "available"
 STATUS_BOOKED: str = "booked"
 DEFAULT_TIME_SLOT: str = "13:00 - 16:00"
@@ -282,6 +282,7 @@ def health_check():
 # 🌐 Public Routes (ไม่ต้องใช้ Token)
 # =============================================================================
 @app.post("/auth/login")
+@app.post("/lab/auth/login")
 async def proxy_auth_login(request: Request):
     """
     ส่งต่อคำขอ Login ไปยัง Central Auth Service และบันทึก SSO Cookie เมื่อสำเร็จ
@@ -338,7 +339,7 @@ async def public_home_page(
         "auth_required": "กรุณาเข้าสู่ระบบ (Login) เพื่อรับ Token ก่อนเข้าใช้งานหน้าระบบจองแล็บ",
         "invalid_token": "บัตรผ่าน (Token) หมดอายุหรือไม่ถูกต้อง กรุณาเข้าสู่ระบบใหม่อีกครั้ง"
     }
-    error_message = error_messages.get(error)
+    error_message = error_messages.get(error) if error else None
 
     return templates.TemplateResponse(
         request=request,
@@ -356,7 +357,7 @@ async def public_home_page(
 @app.post("/lab/logout")
 def lab_logout():
     """ออกจากระบบ ลบ SSO Cookie และ Redirect กลับหน้าแรก"""
-    response = RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
+    response = RedirectResponse(url="/lab/", status_code=status.HTTP_302_FOUND)
     response.delete_cookie(key=COOKIE_NAME, path="/")
     return response
 
@@ -383,7 +384,7 @@ async def protected_booking_page(
     if not user:
         accept_header = request.headers.get("accept", "")
         if "text/html" in accept_header or request.method == "GET":
-            return RedirectResponse(url="/?error=auth_required", status_code=status.HTTP_302_FOUND)
+            return RedirectResponse(url="/lab/?error=auth_required", status_code=status.HTTP_302_FOUND)
         return JSONResponse(
             status_code=status.HTTP_401_UNAUTHORIZED,
             content={"error": "Unauthorized", "message": "Auth layer verification failed"}

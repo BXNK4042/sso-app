@@ -5,8 +5,9 @@ services:
     ports:
       - "9999:80"
     volumes:
-      - ./nginx:/etc/nginx/conf.d:ro
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
+      - central-auth
       - web-app-1
       - web-app-2
     networks:
@@ -23,6 +24,8 @@ services:
       RADIUS_HOST: radius
       RADIUS_SECRET: ${RADIUS_SECRET:-sso_secret_123}
       JWT_SECRET: ${JWT_SECRET:-super-secure-jwt-sso-secret-key-2026}
+      COOKIE_NAME: sso_token
+      ADMIN_USERS: ${ADMIN_USERS:-admin,teacher01}
     depends_on:
       - radius
     networks:
@@ -37,6 +40,7 @@ services:
       AUTH_SERVICE_URL: http://central-auth:4000/auth/login
       DB_PATH: /data/web-app-1.db
       JWT_SECRET: ${JWT_SECRET:-super-secure-jwt-sso-secret-key-2026}
+      COOKIE_NAME: sso_token
     volumes:
       - ./database/web-app-1.db:/data/web-app-1.db
     depends_on:
@@ -53,6 +57,7 @@ services:
       AUTH_SERVICE_URL: http://central-auth:4000/auth/login
       DB_PATH: /data/web-app-2.db
       JWT_SECRET: ${JWT_SECRET:-super-secure-jwt-sso-secret-key-2026}
+      COOKIE_NAME: sso_token
     volumes:
       - ./database/web-app-2.db:/data/web-app-2.db
     depends_on:
@@ -67,8 +72,8 @@ services:
     container_name: sso-radius
     restart: unless-stopped
     ports:
-      - "1812:1812/udp"
-      - "1813:1813/udp"
+      - "127.0.0.1:1812:1812/udp"
+      - "127.0.0.1:1813:1813/udp"
     volumes:
       - ./radius/config/radiusd.conf:/etc/raddb/radiusd.conf:ro
       - ./radius/config/clients.conf:/etc/raddb/clients.conf:ro
@@ -91,7 +96,7 @@ services:
       POSTGRES_PASSWORD: radius_password
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      - ./radtest/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     networks:
       - sso-network
 

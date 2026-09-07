@@ -25,13 +25,13 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 app = FastAPI(title="Central Authentication Service")
 
 # พอร์ตสำหรับรันเซิร์ฟเวอร์ Central Auth (ค่าเริ่มต้นคือ 3000)
-PORT = int(os.getenv("PORT", 3000))
+PORT = int(os.getenv("PORT", "3000"))
 
 # ที่อยู่โฮสต์ของ FreeRADIUS (ค่าเริ่มต้นอ้างอิงชื่อ Container 'freeradius' ใน Docker Network)
 RADIUS_HOST = os.getenv("RADIUS_HOST", "freeradius")
 
 # พอร์ต UDP สำหรับตรวจสอบสิทธิ์ผู้ใช้ของ FreeRADIUS (มาตรฐานคือ 1812)
-RADIUS_PORT = int(os.getenv("RADIUS_PORT", 1812))
+RADIUS_PORT = int(os.getenv("RADIUS_PORT", "1812"))
 
 # กุญแจลับ (Shared Secret) ที่ต้องตรงกันระหว่าง RADIUS Client และ FreeRADIUS Server
 RADIUS_SECRET = os.getenv("RADIUS_SECRET", "testing123")
@@ -43,7 +43,12 @@ JWT_SECRET = os.getenv("JWT_SECRET", "kmitl_chumphon_sso_secret_key_2026")
 JWT_ALGORITHM = "HS256"
 
 # ชื่อของ Cookie ที่จะใช้จัดเก็บ JWT Token บนเบราว์เซอร์ของผู้ใช้งาน
-COOKIE_NAME = "sso_auth_token"
+COOKIE_NAME = os.getenv("COOKIE_NAME", "sso_token")
+ADMIN_USERS = {
+    username.strip().lower()
+    for username in os.getenv("ADMIN_USERS", "admin,teacher01").split(",")
+    if username.strip()
+}
 
 
 # ------------------------------------------------------------------------------
@@ -68,6 +73,7 @@ def authenticate_with_radius(username: str, password: str) -> bool:
 
         # นำรหัสผ่านไปเข้ารหัสตามมาตรฐาน RADIUS Password Hashing ก่อนบรรจุลงแพ็กเก็ต
         req["User-Password"] = req.PwCrypt(password)
+        req.add_message_authenticator()
 
         # ส่งแพ็กเก็ต UDP ออกไป และรอรับการตอบกลับจาก FreeRADIUS Server
         reply = srv.SendPacket(req)
@@ -88,7 +94,7 @@ def authenticate_with_radius(username: str, password: str) -> bool:
 @app.get("/login", response_class=HTMLResponse)
 @app.get("/auth/login", response_class=HTMLResponse)
 @app.get("/", response_class=HTMLResponse)
-async def login_page(request: Request, redirect: str = "/lab/", error: str = None):
+async def login_page(request: Request, redirect: str = "/lab/", error: str | None = None):
     """เรนเดอร์หน้าตาฟอร์มเข้าสู่ระบบ รองรับทั้งการต่อตรงและผ่าน Nginx Reverse Proxy"""
     # ตรวจสอบว่ามีการส่งพารามิเตอร์ error มาหรือไม่เพื่อแสดงกล่องแจ้งเตือนสีแดง
     error_banner = ""
@@ -286,7 +292,8 @@ async def login_handler(request: Request):
             status_code=status.HTTP_303_SEE_OTHER
         )
 
-    user_role = "admin" if ("admin" in username.lower() or "teacher" in username.lower()) else "student"
+    normalized_username = username.lower()
+    user_role = "admin" if normalized_username in ADMIN_USERS else "student"
     payload = {
         "sub": username,
         "name": username,
