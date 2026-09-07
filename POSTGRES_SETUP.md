@@ -1,45 +1,38 @@
-# PostgreSQL + FreeRADIUS SSO Documentation
+# Simple PostgreSQL + FreeRADIUS SSO Guide
 
-## 1. Overview
-The LDAP authentication system has been completely replaced with a lightweight, containerized PostgreSQL database (`sso-postgres`) and pgAdmin web interface (`sso-pgadmin`).
+## 1. Simple SQL Schema (Single `users` Table)
 
----
-
-## 2. Service Access & Credentials
-
-| Service | Host Port | Internal Docker Host | Credentials |
-| :--- | :--- | :--- | :--- |
-| **PostgreSQL DB** | `5433` | `postgres:5432` | DB: `radius`<br>User: `radius`<br>Password: `radius_password` |
-| **pgAdmin Web UI** | `5051` | `http://localhost:5051` | Email: `admin@example.com`<br>Password: `admin_password` |
-| **FreeRADIUS** | `1812/udp` | `radius:1812` | Secret: `sso_secret_123` |
-
----
-
-## 3. Database Schema & Password Hashing
-
-User credentials are stored in the `radcheck` table:
+Instead of complex multi-table RADIUS schemas, the system uses a single simple `users` table:
 
 ```sql
-SELECT * FROM radcheck;
-```
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
-### Adding a Plaintext User
-```sql
-INSERT INTO radcheck (username, attribute, op, value) 
-VALUES ('john', 'Cleartext-Password', ':=', 'password123');
-```
-
-### Adding a Hashed Password User (Bcrypt)
-```sql
-INSERT INTO radcheck (username, attribute, op, value) 
-VALUES ('alice', 'Crypt-Password', ':=', crypt('alicepassword123', gen_salt('bf')));
+CREATE TABLE users (
+    id          SERIAL PRIMARY KEY,
+    username    VARCHAR(64) UNIQUE NOT NULL,
+    password    VARCHAR(255) NOT NULL
+);
 ```
 
 ---
 
-## 4. Testing Authentication (`radtest`)
+## 2. Managing Users
 
-Run `radtest` against the running FreeRADIUS container:
+### A. Insert Plaintext Password User
+```sql
+INSERT INTO users (username, password) VALUES ('john', 'password123');
+```
+
+### B. Insert Bcrypt Hashed Password User
+```sql
+INSERT INTO users (username, password) VALUES ('alice', crypt('alicepassword123', gen_salt('bf')));
+```
+
+FreeRADIUS automatically detects whether the password is plain text or hashed (bcrypt) and authenticates accordingly!
+
+---
+
+## 3. Testing Authentication (`radtest`)
 
 ```bash
 # Test Plaintext user (john)
