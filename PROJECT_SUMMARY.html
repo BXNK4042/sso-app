@@ -1,0 +1,1513 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>สรุปภาพรวมระบบ Centralized SSO Authentication System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0b0f19;
+      --bg-secondary: #111827;
+      --bg-card: #1e293b;
+      --bg-card-hover: #26354a;
+      --border-color: #334155;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --primary: #38bdf8;
+      --primary-dark: #0284c7;
+      --primary-glow: rgba(56, 189, 248, 0.15);
+      --success: #10b981;
+      --success-glow: rgba(16, 185, 129, 0.15);
+      --warning: #f59e0b;
+      --warning-glow: rgba(245, 158, 11, 0.15);
+      --danger: #ef4444;
+      --danger-glow: rgba(239, 68, 68, 0.15);
+      --purple: #a855f7;
+      --indigo: #6366f1;
+      --code-bg: #0d1117;
+    }
+
+    [data-theme="light"] {
+      --bg-primary: #f8fafc;
+      --bg-secondary: #f1f5f9;
+      --bg-card: #ffffff;
+      --bg-card-hover: #f8fafc;
+      --border-color: #e2e8f0;
+      --text-main: #0f172a;
+      --text-muted: #475569;
+      --text-dim: #94a3b8;
+      --primary: #0284c7;
+      --primary-dark: #0369a1;
+      --primary-glow: rgba(2, 132, 199, 0.1);
+      --success: #059669;
+      --success-glow: rgba(5, 150, 105, 0.1);
+      --warning: #d97706;
+      --warning-glow: rgba(217, 119, 6, 0.1);
+      --danger: #dc2626;
+      --danger-glow: rgba(220, 38, 38, 0.1);
+      --purple: #7c3aed;
+      --indigo: #4f46e5;
+      --code-bg: #f1f5f9;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Prompt', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-main);
+      line-height: 1.65;
+      font-size: 15px;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    code, pre, .font-mono {
+      font-family: 'Fira Code', monospace;
+    }
+
+    /* Top Navigation Bar */
+    .top-bar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(17, 24, 39, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-color);
+      padding: 12px 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    [data-theme="light"] .top-bar {
+      background: rgba(255, 255, 255, 0.85);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-logo {
+      width: 38px;
+      height: 38px;
+      background: linear-gradient(135deg, #0284c7, #6366f1);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: 700;
+      font-size: 18px;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    }
+
+    .brand-title {
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: -0.3px;
+    }
+
+    .brand-badge {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 20px;
+      background: var(--primary-glow);
+      color: var(--primary);
+      border: 1px solid var(--primary);
+      font-weight: 500;
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn-theme {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 6px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .btn-theme:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--primary);
+    }
+
+    /* Layout */
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 32px 24px 80px;
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      gap: 32px;
+    }
+
+    @media (max-width: 960px) {
+      .container {
+        grid-template-columns: 1fr;
+      }
+      .sidebar {
+        display: none;
+      }
+    }
+
+    /* Sidebar Table of Contents */
+    .sidebar {
+      position: sticky;
+      top: 80px;
+      height: fit-content;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 20px;
+    }
+
+    .sidebar-title {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-dim);
+      margin-bottom: 14px;
+    }
+
+    .toc-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .toc-link {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 13.5px;
+      padding: 6px 10px;
+      border-radius: 6px;
+      display: block;
+      transition: all 0.15s;
+    }
+
+    .toc-link:hover {
+      color: var(--primary);
+      background: var(--primary-glow);
+      transform: translateX(4px);
+    }
+
+    /* Main Content */
+    .content {
+      display: flex;
+      flex-direction: column;
+      gap: 40px;
+    }
+
+    /* Hero Banner */
+    .hero-card {
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      border: 1px solid var(--border-color);
+      border-radius: 18px;
+      padding: 36px 32px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    }
+
+    [data-theme="light"] .hero-card {
+      background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
+    }
+
+    .hero-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--primary);
+      background: var(--primary-glow);
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 14px;
+      font-weight: 500;
+    }
+
+    .hero-title {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      margin-bottom: 12px;
+      line-height: 1.3;
+    }
+
+    .hero-subtitle {
+      font-size: 15px;
+      color: var(--text-muted);
+      max-width: 800px;
+      margin-bottom: 24px;
+    }
+
+    .hero-meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .hero-meta-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .hero-meta-label {
+      font-size: 11.5px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .hero-meta-val {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    /* Section Cards */
+    .section {
+      scroll-margin-top: 90px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .section-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+    }
+
+    .section-title {
+      font-size: 21px;
+      font-weight: 700;
+      letter-spacing: -0.4px;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 24px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+    }
+
+    /* Callout Alert */
+    .alert-box {
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-bottom: 20px;
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      border-left: 4px solid;
+    }
+
+    .alert-info {
+      background: var(--primary-glow);
+      border-color: var(--primary);
+      color: var(--text-main);
+    }
+
+    .alert-success {
+      background: var(--success-glow);
+      border-color: var(--success);
+      color: var(--text-main);
+    }
+
+    .alert-warning {
+      background: var(--warning-glow);
+      border-color: var(--warning);
+      color: var(--text-main);
+    }
+
+    /* Architecture Grid */
+    .arch-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+      margin-top: 18px;
+    }
+
+    .arch-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 18px;
+      transition: all 0.2s;
+    }
+
+    .arch-card:hover {
+      border-color: var(--primary);
+      transform: translateY(-2px);
+    }
+
+    .arch-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .arch-title {
+      font-size: 15px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .port-pill {
+      font-size: 12px;
+      padding: 2px 8px;
+      border-radius: 6px;
+      background: var(--primary-glow);
+      color: var(--primary);
+      font-family: 'Fira Code', monospace;
+      font-weight: 600;
+    }
+
+    .arch-desc {
+      font-size: 13.5px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* Tables */
+    .table-container {
+      overflow-x: auto;
+      margin-top: 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 13.5px;
+    }
+
+    th {
+      background: var(--bg-secondary);
+      color: var(--text-muted);
+      font-weight: 600;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-color);
+      font-size: 12.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    td {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-color);
+      color: var(--text-main);
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background: var(--bg-card-hover);
+    }
+
+    /* Badges */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11.5px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-weight: 500;
+    }
+
+    .badge-admin {
+      background: rgba(168, 85, 247, 0.15);
+      color: #c084fc;
+      border: 1px solid rgba(168, 85, 247, 0.3);
+    }
+
+    .badge-student {
+      background: var(--primary-glow);
+      color: var(--primary);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+
+    .badge-pass {
+      background: var(--success-glow);
+      color: var(--success);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .badge-hash {
+      background: var(--warning-glow);
+      color: var(--warning);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    /* Code snippet blocks */
+    .code-wrapper {
+      position: relative;
+      background: var(--code-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      margin: 14px 0;
+      overflow: hidden;
+    }
+
+    .code-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 14px;
+      background: rgba(0,0,0,0.25);
+      border-bottom: 1px solid var(--border-color);
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+
+    .btn-copy {
+      background: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .btn-copy:hover {
+      background: var(--bg-card);
+      color: var(--primary);
+    }
+
+    pre code {
+      display: block;
+      padding: 14px;
+      overflow-x: auto;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #e2e8f0;
+    }
+
+    [data-theme="light"] pre code {
+      color: #1e293b;
+    }
+
+    /* Stepper / Timeline */
+    .stepper {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      margin-top: 16px;
+      position: relative;
+      padding-left: 32px;
+    }
+
+    .stepper::before {
+      content: '';
+      position: absolute;
+      left: 13px;
+      top: 8px;
+      bottom: 8px;
+      width: 2px;
+      background: var(--border-color);
+    }
+
+    .step-item {
+      position: relative;
+    }
+
+    .step-dot {
+      position: absolute;
+      left: -32px;
+      top: 3px;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: var(--bg-card);
+      border: 2px solid var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .step-title {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .step-desc {
+      font-size: 13.5px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* File Tree */
+    .file-tree {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 16px;
+      font-family: 'Fira Code', monospace;
+      font-size: 13px;
+      line-height: 1.8;
+      overflow-x: auto;
+    }
+
+    .file-tree .dir {
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    .file-tree .file {
+      color: var(--text-muted);
+    }
+
+    .file-tree .desc {
+      color: var(--text-dim);
+      font-family: 'Prompt', sans-serif;
+      font-size: 12px;
+    }
+
+    /* Diagram Canvas / Visual */
+    .flow-diagram {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .flow-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      justify-content: center;
+      width: 100%;
+    }
+
+    .flow-node {
+      background: var(--bg-card);
+      border: 1.5px solid var(--border-color);
+      border-radius: 10px;
+      padding: 12px 18px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      min-width: 170px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+
+    .flow-node.primary {
+      border-color: var(--primary);
+      background: var(--primary-glow);
+    }
+
+    .flow-node.success {
+      border-color: var(--success);
+      background: var(--success-glow);
+    }
+
+    .flow-node.indigo {
+      border-color: var(--indigo);
+      background: rgba(99, 102, 241, 0.1);
+    }
+
+    .flow-arrow {
+      color: var(--text-dim);
+      font-weight: 700;
+      font-size: 18px;
+    }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      padding: 30px 0;
+      color: var(--text-dim);
+      font-size: 13px;
+      border-top: 1px solid var(--border-color);
+      margin-top: 40px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Bar -->
+  <header class="top-bar">
+    <div class="brand">
+      <div class="brand-logo">SSO</div>
+      <div>
+        <div class="brand-title">SSO Microservices Architecture Guide</div>
+      </div>
+      <span class="brand-badge">Local Workspace Summary</span>
+    </div>
+    <div class="nav-actions">
+      <button class="btn-theme" onclick="toggleTheme()">
+        <span id="themeIcon">☀️</span> <span id="themeText">สลับธีม</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-title">สารบัญเนื้อหา (Table of Contents)</div>
+      <ul class="toc-list">
+        <li><a href="#overview" class="toc-link">1. ภาพรวมโครงการ (Overview)</a></li>
+        <li><a href="#git-status" class="toc-link">2. ข้อมูล Git & บันทึกการดึงโค้ด</a></li>
+        <li><a href="#architecture" class="toc-link">3. โครงสร้างสถาปัตยกรรม (Architecture)</a></li>
+        <li><a href="#sso-flow" class="toc-link">4. ลำดับการทำงาน SSO (Auth Flow)</a></li>
+        <li><a href="#services" class="toc-link">5. รายละเอียดไมโครเซอร์วิส (Services)</a></li>
+        <li><a href="#database" class="toc-link">6. โครงสร้างฐานข้อมูล (Database)</a></li>
+        <li><a href="#test-accounts" class="toc-link">7. บัญชีสำหรับทดสอบ (Test Accounts)</a></li>
+        <li><a href="#quickstart" class="toc-link">8. วิธีรันและทดสอบระบบ (Quickstart)</a></li>
+        <li><a href="#codebase-map" class="toc-link">9. ผังไฟล์ในโปรเจกต์ (Codebase Map)</a></li>
+        <li><a href="#security" class="toc-link">10. ระบบความปลอดภัย & Refactoring</a></li>
+      </ul>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="content">
+
+      <!-- Hero Card -->
+      <div class="hero-card">
+        <div class="hero-tag">🔒 Centralized Single Sign-On (SSO) System</div>
+        <h1 class="hero-title">ระบบยืนยันตัวตนกลาง SSO (FreeRADIUS + PostgreSQL) และแอปพลิเคชันตัวอย่าง</h1>
+        <p class="hero-subtitle">
+          เอกสารสรุปสถาปัตยกรรมระบบ การเชื่อมต่อไมโครเซอร์วิส ฐานข้อมูล โครงสร้างโฟลเดอร์ และวิธีทดสอบระบบทั้งหมดอย่างละเอียด จัดทำขึ้นสำหรับอ่านคนเดียวในเครื่อง ไม่มีการ commit หรือ push ขึ้น Git Remote
+        </p>
+
+        <div class="hero-meta-grid">
+          <div class="hero-meta-item">
+            <span class="hero-meta-label">Current Git Branch</span>
+            <span class="hero-meta-val font-mono" style="color: var(--primary);">FAH (Synced with origin/main)</span>
+          </div>
+          <div class="hero-meta-item">
+            <span class="hero-meta-label">Latest Commit</span>
+            <span class="hero-meta-val font-mono">8c45e0f (origin/main)</span>
+          </div>
+          <div class="hero-meta-item">
+            <span class="hero-meta-label">Core Engine</span>
+            <span class="hero-meta-val">FreeRADIUS + PostgreSQL 17</span>
+          </div>
+          <div class="hero-meta-item">
+            <span class="hero-meta-label">Gateway / Reverse Proxy</span>
+            <span class="hero-meta-val">Nginx (Port 9999)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 1: Overview -->
+      <section id="overview" class="section">
+        <div class="section-header">
+          <div class="section-icon">📌</div>
+          <h2 class="section-title">1. ภาพรวมโครงการ (Project Overview)</h2>
+        </div>
+        <div class="card">
+          <p style="margin-bottom: 14px;">
+            โปรเจกต์นี้เป็นการออกแบบและพัฒนาระบบ <strong>Single Sign-On (SSO) ส่วนกลาง</strong> สำหรับองค์กรหรือสถานศึกษา (เช่น KMITL) โดยมีแนวคิดหลักคือ:
+          </p>
+          <ul style="margin-left: 20px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 8px; color: var(--text-muted);">
+            <li><strong>เข้าสู่ระบบเพียงครั้งเดียว (Single Sign-On):</strong> เมื่อผู้ใช้งานล็อกอินผ่านบริการ Central Authentication แล้ว จะได้รับคุกกี้ JWT บัตรผ่านสิทธิ์ ทำให้สามารถเปิดใช้งานระบบอื่นๆ ในเครือข่ายได้ทันทีโดยไม่ต้องล็อกอินซ้ำ</li>
+            <li><strong>FreeRADIUS เป็นศูนย์กลางการยืนยันตัวตน (Authentication Engine):</strong> ใช้วิธีมาตรฐาน UDP RADIUS (Port 1812) ตรวจสอบความถูกต้องของบัญชีผู้ใช้</li>
+            <li><strong>PostgreSQL จัดเก็บข้อมูลผู้ใช้อย่างง่ายแต่ทรงพลัง:</strong> เดิมทีมีแผนใช้ OpenLDAP แต่ทีมได้ปรับปรุง (Refactor) มาใช้ PostgreSQL Table <code>users</code> เดียว พร้อมใช้ extension <code>pgcrypto</code> รองรับทั้งรหัสผ่านธรรมดา (Plaintext) และรหัสผ่านที่เข้ารหัสแบบ <strong>Bcrypt</strong></li>
+            <li><strong>Microservices เต็มรูปแบบผ่าน Docker Compose:</strong> มีบริการทั้งหมด 7 ตัวทำงานร่วมกันในเครือข่าย Docker <code>sso-network</code> ประกอบด้วย Nginx Reverse Proxy, Central Auth, Web App 1 (Lab Booking), Web App 2 (IT Equipment Loan), FreeRADIUS, PostgreSQL และ pgAdmin 4</li>
+          </ul>
+
+          <div class="alert-box alert-success">
+            <div>💡</div>
+            <div>
+              <strong>สถานะปัจจุบัน:</strong> ตัวโค้ดทั้งหมดได้ถูกดึง (fetch & pull/merge) รวมเข้าสู่เครื่องเรียบร้อยแล้ว ทุกฟังก์ชันจากทุก branch ของเพื่อนร่วมทีม (bank, first, leo, riew, fah) ได้ถูกผสานเข้ากับกิ่ง <code>main</code> และนำมาอัปเดตลงใน workspace นี้อย่างครบถ้วน
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 2: Git Status -->
+      <section id="git-status" class="section">
+        <div class="section-header">
+          <div class="section-icon">🌿</div>
+          <h2 class="section-title">2. ข้อมูล Git & บันทึกการดึงโค้ดล่าสุด</h2>
+        </div>
+        <div class="card">
+          <p style="margin-bottom: 12px;">รายละเอียดการดึงข้อมูลจาก Remote Repository (<code>https://github.com/BXNK4042/sso-app.git</code>):</p>
+          
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Branch Name</th>
+                  <th>Last Commit ID</th>
+                  <th>ผู้พัฒนา (Developer)</th>
+                  <th>หน้าที่หลักของ Branch / รายละเอียด</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code class="font-mono">main</code></td>
+                  <td><code class="font-mono">8c45e0f</code></td>
+                  <td>BXNK4042 (Bank)</td>
+                  <td>รวมโค้ดที่เสร็จสมบูรณ์ของทุกบริการ, Docker Compose, Database Scripts</td>
+                </tr>
+                <tr>
+                  <td><code class="font-mono">FAH</code> (Current)</td>
+                  <td><code class="font-mono">8c45e0f</code> (Merged)</td>
+                  <td>Rujinat (FAH - คุณ)</td>
+                  <td>พัฒนา Central Authentication UI, FastAPI Backend, Token Issuing, Sessions</td>
+                </tr>
+                <tr>
+                  <td><code class="font-mono">first</code></td>
+                  <td><code class="font-mono">5d795d9</code></td>
+                  <td>Firstvutt (First)</td>
+                  <td>ติดตั้ง FreeRADIUS, เปลี่ยนจาก LDAP เป็น PostgreSQL, จัดทำคู่มือ README</td>
+                </tr>
+                <tr>
+                  <td><code class="font-mono">leo</code></td>
+                  <td><code class="font-mono">9abdc03</code></td>
+                  <td>leooelleo12389 (Leo)</td>
+                  <td>สร้าง Web App 1 (ระบบจองห้องแล็บ) และ Web App 2 (ระบบยืมอุปกรณ์ไอที)</td>
+                </tr>
+                <tr>
+                  <td><code class="font-mono">riew</code></td>
+                  <td><code class="font-mono">b8f299e</code></td>
+                  <td>Parallelz (Riew)</td>
+                  <td>คอนฟิก Nginx Reverse Proxy, จัดระเบียบ Docker Compose และรวมโครงข่าย</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="alert-box alert-warning" style="margin-top: 18px;">
+            <div>⚠️</div>
+            <div>
+              <strong>คำเตือนเรื่อง Git Commit/Push:</strong> ไฟล์สรุปนี้ (<code>PROJECT_SUMMARY.html</code>) จัดทำขึ้นเพื่อให้อ่านศึกษาในเครื่องนี้เท่านั้น จึงไม่ได้ถูก <code>git add</code> หรือ <code>git commit</code> เพื่อไม่ให้ปะปนกับประวัติ Git ของทีมงาน
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 3: Architecture -->
+      <section id="architecture" class="section">
+        <div class="section-header">
+          <div class="section-icon">🏗️</div>
+          <h2 class="section-title">3. โครงสร้างสถาปัตยกรรมทั้งระบบ (System Architecture)</h2>
+        </div>
+        <div class="card">
+          <p style="margin-bottom: 16px;">
+            สถาปัตยกรรมแบบ Microservices เชื่อมต่อกันผ่าน Nginx Reverse Proxy ซึ่งทำหน้าที่เป็น Single Entry Point เปิดบริการที่ Port <code>9999</code>:
+          </p>
+
+          <!-- Visual Flow Diagram -->
+          <div class="flow-diagram">
+            <div class="flow-row">
+              <div class="flow-node">
+                <strong>🌐 ผู้ใช้งาน (User / Browser)</strong>
+                <span style="font-size: 12px; color: var(--text-dim);">เข้าชมผ่าน Browser</span>
+              </div>
+              <div class="flow-arrow">➡️</div>
+              <div class="flow-node primary">
+                <strong>🛡️ Reverse Proxy (Nginx)</strong>
+                <span class="port-pill">Port 9999</span>
+                <span style="font-size: 11px; color: var(--text-dim);">เส้นทางหลัก (Gateway)</span>
+              </div>
+            </div>
+
+            <div class="flow-arrow">⬇️ แยกตามเส้นทาง URL (Path Routing)</div>
+
+            <div class="flow-row">
+              <div class="flow-node indigo">
+                <strong>🚪 Central Auth</strong>
+                <span class="port-pill">/auth/ (Port 4000)</span>
+                <span style="font-size: 11px; color: var(--text-dim);">FastAPI + PyRAD + JWT</span>
+              </div>
+
+              <div class="flow-node">
+                <strong>🧪 Web App 1: Lab</strong>
+                <span class="port-pill">/lab/ (Port 5000)</span>
+                <span style="font-size: 11px; color: var(--text-dim);">จองห้องปฏิบัติการ (SQLite)</span>
+              </div>
+
+              <div class="flow-node">
+                <strong>💻 Web App 2: Loan</strong>
+                <span class="port-pill">/equipment/ (Port 5001)</span>
+                <span style="font-size: 11px; color: var(--text-dim);">ยืมคืนอุปกรณ์ไอที (SQLite)</span>
+              </div>
+            </div>
+
+            <div class="flow-arrow">⬇️ ยืนยันสิทธิ์บัญชีผ่านโปรโตคอล RADIUS</div>
+
+            <div class="flow-row">
+              <div class="flow-node success">
+                <strong>📡 FreeRADIUS Service</strong>
+                <span class="port-pill">UDP 1812/1813</span>
+                <span style="font-size: 11px; color: var(--text-dim);">Container: sso-radius</span>
+              </div>
+              <div class="flow-arrow">➡️ (SQL Query) ➡️</div>
+              <div class="flow-node success">
+                <strong>🗄️ PostgreSQL Database</strong>
+                <span class="port-pill">Port 5432</span>
+                <span style="font-size: 11px; color: var(--text-dim);">DB: radius (pgcrypto)</span>
+              </div>
+              <div class="flow-arrow">⬅️</div>
+              <div class="flow-node">
+                <strong>🖥️ pgAdmin 4 UI</strong>
+                <span class="port-pill">Port 5050</span>
+                <span style="font-size: 11px; color: var(--text-dim);">Web Database Management</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Microservice Cards -->
+          <div class="arch-grid">
+            <div class="arch-card">
+              <div class="arch-header">
+                <span class="arch-title">🌐 reverse-proxy</span>
+                <span class="port-pill">:9999</span>
+              </div>
+              <div class="arch-desc">
+                Nginx Alpine ทำหน้าที่เป็นทางเข้าเดียว เชื่อมโยงทุกบริการภายใต้โดเมนเดียวกัน ช่วยแก้ปัญหา Cross-Origin Cookie ทำให้คุกกี้ SSO ส่งผ่านได้ทุกแอป
+              </div>
+            </div>
+
+            <div class="arch-card">
+              <div class="arch-header">
+                <span class="arch-title">🔐 central-auth</span>
+                <span class="port-pill">:4000</span>
+              </div>
+              <div class="arch-desc">
+                FastAPI ให้บริการฟอร์ม Login, ตรวจสอบรหัสผ่านกับ FreeRADIUS ผ่าน UDP 1812, ออก JWT Token บันทึกในคุกกี้ <code>sso_token</code> (HttpOnly)
+              </div>
+            </div>
+
+            <div class="arch-card">
+              <div class="arch-header">
+                <span class="arch-title">🧪 web-app-1</span>
+                <span class="port-pill">:5000</span>
+              </div>
+              <div class="arch-desc">
+                ระบบจองห้องแล็บคอมพิวเตอร์ มีทั้งหน้าสาธารณะ (Public Home) และหน้าคุ้มครองสิทธิ์ (Booking) ตรวจสอบบัตรผ่าน JWT
+              </div>
+            </div>
+
+            <div class="arch-card">
+              <div class="arch-header">
+                <span class="arch-title">💻 web-app-2</span>
+                <span class="port-pill">:5001</span>
+              </div>
+              <div class="arch-desc">
+                ระบบยืมคืนอุปกรณ์ไอที (เช่น MacBook, iPad, VR Headset) คุ้มครองสิทธิ์ด้วย JWT Token เช่นเดียวกับ Web App 1
+              </div>
+            </div>
+
+            <div class="arch-card">
+              <div class="arch-header">
+                <span class="arch-title">📡 radius</span>
+                <span class="port-pill">UDP 1812</span>
+              </div>
+              <div class="arch-desc">
+                FreeRADIUS ติดตั้งบน Alpine พร้อมโมดูล <code>rlm_sql_postgresql</code> ดึงข้อมูลผู้ใช้จากฐานข้อมูล PostgreSQL โดยตรง
+              </div>
+            </div>
+
+            <div class="arch-card">
+              <div class="arch-header">
+                <span class="arch-title">🗄️ postgres & pgadmin</span>
+                <span class="port-pill">:5432 & :5050</span>
+              </div>
+              <div class="arch-desc">
+                PostgreSQL 17 เก็บตาราง <code>users</code> พร้อมฟังก์ชัน Bcrypt (<code>pgcrypto</code>) และมี pgAdmin สำหรับจัดการข้อมูลผ่านเว็บ
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 4: SSO Auth Flow -->
+      <section id="sso-flow" class="section">
+        <div class="section-header">
+          <div class="section-icon">🔄</div>
+          <h2 class="section-title">4. ลำดับขั้นตอนการทำงานของ SSO (Authentication Step-by-Step)</h2>
+        </div>
+        <div class="card">
+          <div class="stepper">
+            <div class="step-item">
+              <div class="step-dot">1</div>
+              <div class="step-title">ผู้ใช้เปิดหน้าเว็บระบบย่อย (เช่น /lab/booking หรือ /equipment/borrow)</div>
+              <div class="step-desc">
+                แอปพลิเคชัน (FastAPI) จะดึงคุกกี้ชื่อ <code>sso_token</code> หรือ Bearer Header มาตรวจสอบ หากไม่มีหรือ Token หมดอายุ จะทำ HTTP 303 Redirect ผู้ใช้ไปยัง <code>http://localhost:9999/auth/login?redirect=/lab/booking</code>
+              </div>
+            </div>
+
+            <div class="step-item">
+              <div class="step-dot">2</div>
+              <div class="step-title">Central Auth แสดงหน้าจอ Login และรับข้อมูลบัญชี</div>
+              <div class="step-desc">
+                ผู้ใช้กรอก Username และ Password ในแบบฟอร์ม หน้าเว็บส่งแบบฟอร์ม <code>POST /auth/login</code> พร้อมพารามิเตอร์ซ่อน <code>redirect_url</code>
+              </div>
+            </div>
+
+            <div class="step-item">
+              <div class="step-dot">3</div>
+              <div class="step-title">ส่งแพ็กเก็ต RADIUS Access-Request ผ่าน UDP</div>
+              <div class="step-desc">
+                FastAPI เรียกใช้ฟังก์ชัน <code>authenticate_with_radius()</code> ส่งแพ็กเก็ต UDP พอร์ต 1812 ไปยังโฮสต์ <code>sso-radius</code> โดยมีการเข้ารหัสลับด้วย Shared Secret <code>sso_secret_123</code> และแนบ Message Authenticator
+              </div>
+            </div>
+
+            <div class="step-item">
+              <div class="step-dot">4</div>
+              <div class="step-title">FreeRADIUS คิวรีตรวจสอบรหัสผ่านใน PostgreSQL</div>
+              <div class="step-desc">
+                FreeRADIUS รัน Authorize Query ในโมดูล SQL:
+                <div class="code-wrapper" style="margin: 8px 0;">
+                  <pre><code>SELECT id, username, 
+       CASE WHEN password LIKE '$%' THEN 'Crypt-Password' ELSE 'Cleartext-Password' END AS attribute, 
+       password AS value, ':=' AS op 
+FROM users WHERE username = '%{SQL-User-Name}';</code></pre>
+                </div>
+                ระบบจะตรวจสอบว่าหากรหัสขึ้นต้นด้วยเครื่องหมาย <code>$</code> (เช่น <code>$2a$</code> หรือ <code>$2b$</code> ของ Bcrypt) จะเทียบด้วยระบบ Crypt อัตโนมัติ แต่ถ้าไม่ขึ้นต้นด้วย <code>$</code> จะถือว่าเป็น Plaintext ทำให้รองรับทั้งสองแบบได้อย่างชาญฉลาด
+              </div>
+            </div>
+
+            <div class="step-item">
+              <div class="step-dot">5</div>
+              <div class="step-title">FreeRADIUS ส่งผลลัพธ์ตอบกลับ (Access-Accept / Access-Reject)</div>
+              <div class="step-desc">
+                ถ้ารหัสผ่านถูกต้อง FreeRADIUS จะส่งแพ็กเก็ต <code>Access-Accept</code> กลับมา ถ้าผิดหรือไม่พบบัญชีจะส่ง <code>Access-Reject</code>
+              </div>
+            </div>
+
+            <div class="step-item">
+              <div class="step-dot">6</div>
+              <div class="step-title">ออกบัตรผ่าน JWT Token และบันทึกลงในคุกกี้</div>
+              <div class="step-desc">
+                เมื่อผ่านการตรวจสอบ Central Auth จะตรวจสอบ Role ของผู้ใช้ (หากเป็น <code>admin</code> หรือ <code>teacher01</code> จะได้สิทธิ์ <strong>admin</strong> นอกนั้นเป็น <strong>student</strong>) จากนั้น Sign JWT Token ด้วย <code>JWT_SECRET</code> (อายุ 2 ชั่วโมง) แล้วเขียนลงในคุกกี้ <code>sso_token</code> พร้อมตั้งค่า <code>HttpOnly=True, Path="/", SameSite="lax"</code>
+              </div>
+            </div>
+
+            <div class="step-item">
+              <div class="step-dot">7</div>
+              <div class="step-title">Redirect กลับสู่ระบบต้นทางอย่างราบรื่น (Single Sign-On Experience)</div>
+              <div class="step-desc">
+                เบราว์เซอร์ถูกส่งกลับไปยัง <code>redirect_url</code> (เช่น <code>/lab/booking</code>) โดยคราวนี้เบราว์เซอร์ได้แนบคุกกี้ <code>sso_token</code> ไปด้วย ทำให้ Web App 1 ถอดรหัสอ่านสิทธิ์ได้ทันที และหากผู้ใช้เปิดแท็บใหม่ไปยัง Web App 2 (<code>/equipment/borrow</code>) เบราว์เซอร์ก็จะแนบคุกกี้เดิมไปด้วยทันทีโดยไม่ต้องกรอกรหัสผ่านใหม่อีก!
+              </div>
+            </div>
+
+            <div class="step-item">
+              <div class="step-dot">8</div>
+              <div class="step-title">การออกจากระบบส่วนกลาง (Central Logout)</div>
+              <div class="step-desc">
+                เมื่อคลิกปุ่ม Logout ในแอปใดก็ตาม ระบบจะพาไปยัง <code>/auth/logout</code> ซึ่งจะทำการสั่งเบราว์เซอร์ให้ลบคุกกี้ <code>sso_token</code> ที่ <code>Path=/</code> ส่งผลให้สิทธิ์การเข้าใช้งานหลุดออกจากทุกแอปพลิเคชันพร้อมกันทันที
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 5: Services Matrix -->
+      <section id="services" class="section">
+        <div class="section-header">
+          <div class="section-icon">⚙️</div>
+          <h2 class="section-title">5. รายละเอียดไมโครเซอร์วิสและตารางคอนฟิก (Services Matrix)</h2>
+        </div>
+        <div class="card">
+          <p style="margin-bottom: 14px;">สรุปพอร์ต สภาพแวดล้อม และ Container Configuration ทั้งหมดใน <code>docker-compose.yml</code>:</p>
+
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Service Name</th>
+                  <th>Container Name</th>
+                  <th>Host Port</th>
+                  <th>Internal Host:Port</th>
+                  <th>หน้าที่หลัก & สิ่งแวดล้อมสำคัญ</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>reverse-proxy</strong></td>
+                  <td><code>reverse-proxy</code></td>
+                  <td><span class="port-pill">9999</span></td>
+                  <td><code>reverse-proxy:80</code></td>
+                  <td>Nginx Reverse Proxy จัดการ Path Routing: <code>/auth/</code>, <code>/lab/</code>, <code>/equipment/</code></td>
+                </tr>
+                <tr>
+                  <td><strong>central-auth</strong></td>
+                  <td><code>central-auth</code></td>
+                  <td><span class="port-pill">4000</span></td>
+                  <td><code>central-auth:4000</code></td>
+                  <td>FastAPI UI & Authentication Handler เชื่อมต่อไปยัง RADIUS Server</td>
+                </tr>
+                <tr>
+                  <td><strong>web-app-1</strong></td>
+                  <td><code>app1-service</code></td>
+                  <td><span class="port-pill">5000</span></td>
+                  <td><code>web-app-1:5000</code></td>
+                  <td>ระบบจองห้องแล็บคอมพิวเตอร์ (SQLite <code>/data/web-app-1.db</code>)</td>
+                </tr>
+                <tr>
+                  <td><strong>web-app-2</strong></td>
+                  <td><code>app2-service</code></td>
+                  <td><span class="port-pill">5001</span></td>
+                  <td><code>web-app-2:5001</code></td>
+                  <td>ระบบยืมคืนอุปกรณ์ไอที (SQLite <code>/data/web-app-2.db</code>)</td>
+                </tr>
+                <tr>
+                  <td><strong>radius</strong></td>
+                  <td><code>sso-radius</code></td>
+                  <td><span class="port-pill">1812 (UDP)</span></td>
+                  <td><code>sso-radius:1812</code></td>
+                  <td>FreeRADIUS Authentication Server (Secret: <code>sso_secret_123</code>)</td>
+                </tr>
+                <tr>
+                  <td><strong>postgres</strong></td>
+                  <td><code>sso-postgres</code></td>
+                  <td><span class="port-pill">5432</span></td>
+                  <td><code>sso-postgres:5432</code></td>
+                  <td>PostgreSQL 17 Database: <code>radius</code>, User: <code>radius</code>, Password: <code>radius_password</code></td>
+                </tr>
+                <tr>
+                  <td><strong>pgadmin</strong></td>
+                  <td><code>sso-pgadmin</code></td>
+                  <td><span class="port-pill">5050</span></td>
+                  <td><code>sso-pgadmin:80</code></td>
+                  <td>pgAdmin 4 Web GUI สำหรับดูและแก้ไขตารางข้อมูลใน PostgreSQL</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 6: Database -->
+      <section id="database" class="section">
+        <div class="section-header">
+          <div class="section-icon">🗄️</div>
+          <h2 class="section-title">6. โครงสร้างฐานข้อมูล (Database Schemas)</h2>
+        </div>
+        <div class="card">
+          <h3 style="font-size: 16px; margin-bottom: 8px;">6.1 ฐานข้อมูลกลางผู้ใช้ (PostgreSQL: <code>radius</code>)</h3>
+          <p style="color: var(--text-muted); font-size: 13.5px; margin-bottom: 12px;">
+            สร้างขึ้นจากไฟล์ <code>database/init.sql</code> ประกอบด้วย 1 ตารางหลักที่กระชับแต่ครบถ้วน:
+          </p>
+
+          <div class="code-wrapper">
+            <div class="code-header">
+              <span>SQL Schema: database/init.sql</span>
+              <button class="btn-copy" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre><code>CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+CREATE TABLE IF NOT EXISTS users (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(64) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    role VARCHAR(20) NOT NULL DEFAULT 'student',
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT users_role_check CHECK (role IN ('admin', 'student'))
+);</code></pre>
+          </div>
+
+          <h3 style="font-size: 16px; margin: 24px 0 8px;">6.2 ฐานข้อมูลเฉพาะแอปพลิเคชัน (SQLite Databases)</h3>
+          <p style="color: var(--text-muted); font-size: 13.5px; margin-bottom: 12px;">
+            ทั้ง 2 แอปพลิเคชันแยกเก็บฐานข้อมูลแบบ SQLite ในโฟลเดอร์ <code>database/</code> เพื่อความเป็นอิสระของข้อมูลทางธุรกิจ (Data Isolation):
+          </p>
+
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>แอปพลิเคชัน</th>
+                  <th>ตำแหน่งไฟล์</th>
+                  <th>ตาราง (Table)</th>
+                  <th>คอลัมน์และโครงสร้างข้อมูล</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Web App 1</strong> (Lab)</td>
+                  <td><code>database/web-app-1.db</code></td>
+                  <td><code>lab_computers</code></td>
+                  <td><code>id (PK)</code>, <code>room</code>, <code>status (available/booked)</code>, <code>booked_by</code>, <code>time</code></td>
+                </tr>
+                <tr>
+                  <td><strong>Web App 2</strong> (Equipment)</td>
+                  <td><code>database/web-app-2.db</code></td>
+                  <td><code>equipments</code></td>
+                  <td><code>id (PK)</code>, <code>name</code>, <code>category</code>, <code>status (available/borrowed)</code>, <code>borrowed_by</code>, <code>due_date</code></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 7: Test Accounts -->
+      <section id="test-accounts" class="section">
+        <div class="section-header">
+          <div class="section-icon">👥</div>
+          <h2 class="section-title">7. บัญชีผู้ใช้สำหรับทดสอบ (Test Accounts Matrix)</h2>
+        </div>
+        <div class="card">
+          <p style="margin-bottom: 14px;">
+            รายชื่อผู้ใช้ที่ถูก Seed ไว้ล่วงหน้าในฐานข้อมูล PostgreSQL และไฟล์ FreeRADIUS users:
+          </p>
+
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Username</th>
+                  <th>Password</th>
+                  <th>บทบาท (Role)</th>
+                  <th>รูปแบบรหัสผ่านใน DB</th>
+                  <th>สิทธิ์การใช้งานในระบบ</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong class="font-mono">admin</strong></td>
+                  <td><code class="font-mono">adminpass</code></td>
+                  <td><span class="badge badge-admin">Admin</span></td>
+                  <td><span class="badge badge-pass">Plaintext</span></td>
+                  <td>ยกเลิกการจองคอมได้ทุกเครื่อง / คืนอุปกรณ์ของทุกคนได้ / จัดการระบบ</td>
+                </tr>
+                <tr>
+                  <td><strong class="font-mono">teacher01</strong></td>
+                  <td><code class="font-mono">teachpass123</code></td>
+                  <td><span class="badge badge-admin">Admin</span></td>
+                  <td><span class="badge badge-pass">Plaintext</span></td>
+                  <td>สิทธิ์ระดับอาจารย์ / แอดมิน ดูแลห้องปฏิบัติการและอุปกรณ์</td>
+                </tr>
+                <tr>
+                  <td><strong class="font-mono">student66</strong></td>
+                  <td><code class="font-mono">password123</code></td>
+                  <td><span class="badge badge-student">Student</span></td>
+                  <td><span class="badge badge-pass">Plaintext</span></td>
+                  <td>จองเครื่องคอมพิวเตอร์ที่ว่าง / ยืมอุปกรณ์ / ยกเลิกรายการของตนเอง</td>
+                </tr>
+                <tr>
+                  <td><strong class="font-mono">john</strong></td>
+                  <td><code class="font-mono">password123</code></td>
+                  <td><span class="badge badge-student">Student</span></td>
+                  <td><span class="badge badge-pass">Plaintext</span></td>
+                  <td>บัญชีนักศึกษาทั่วไป</td>
+                </tr>
+                <tr>
+                  <td><strong class="font-mono">alice</strong></td>
+                  <td><code class="font-mono">alicepassword123</code></td>
+                  <td><span class="badge badge-student">Student</span></td>
+                  <td><span class="badge badge-hash">Bcrypt Hashed</span></td>
+                  <td>ทดสอบรหัสผ่านเข้ารหัสแบบ <code>crypt(..., gen_salt('bf'))</code></td>
+                </tr>
+                <tr>
+                  <td><strong class="font-mono">onefirst</strong></td>
+                  <td><code class="font-mono">password123</code></td>
+                  <td><span class="badge badge-student">Student</span></td>
+                  <td><span class="badge badge-pass">RADIUS users file</span></td>
+                  <td>บัญชีทดสอบระดับ FreeRADIUS Local Fallback</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 8: Quickstart -->
+      <section id="quickstart" class="section">
+        <div class="section-header">
+          <div class="section-icon">🚀</div>
+          <h2 class="section-title">8. วิธีการรันและทดสอบระบบ (Setup & Testing Guide)</h2>
+        </div>
+        <div class="card">
+          <h3 style="font-size: 16px; margin-bottom: 8px;">8.1 การเริ่มระบบด้วย Docker Compose</h3>
+          <p style="color: var(--text-muted); font-size: 13.5px;">รันคำสั่งจากรากของโปรเจกต์นี้:</p>
+
+          <div class="code-wrapper">
+            <div class="code-header">
+              <span>Terminal Bash</span>
+              <button class="btn-copy" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre><code># สร้างและเริ่มคอนเทนเนอร์ทั้งหมด 7 ตัวใน background
+docker-compose up -d --build
+
+# ตรวจสอบสถานะการทำงานของคอนเทนเนอร์
+docker-compose ps</code></pre>
+          </div>
+
+          <h3 style="font-size: 16px; margin: 24px 0 8px;">8.2 การทดสอบ FreeRADIUS ผ่าน Command-Line ด้วย <code>radtest</code></h3>
+          <p style="color: var(--text-muted); font-size: 13.5px;">สามารถทดสอบได้ทันทีโดยไม่ต้องเปิดเบราว์เซอร์:</p>
+
+          <div class="code-wrapper">
+            <div class="code-header">
+              <span>Terminal Bash</span>
+              <button class="btn-copy" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre><code># 1. ทดสอบผู้ใช้รหัสผ่านธรรมดา (john)
+docker exec -it sso-radius radtest john password123 127.0.0.1 0 sso_secret_123
+
+# ผลลัพธ์ที่ถูกต้อง:
+# Received Access-Accept Id ... from 127.0.0.1:1812
+
+# 2. ทดสอบผู้ใช้รหัสผ่าน Bcrypt (alice)
+docker exec -it sso-radius radtest alice alicepassword123 127.0.0.1 0 sso_secret_123
+
+# 3. ทดสอบรหัสผ่านผิด (ต้องถูก Reject)
+docker exec -it sso-radius radtest john wrongpassword 127.0.0.1 0 sso_secret_123
+
+# ผลลัพธ์:
+# Received Access-Reject Id ...</code></pre>
+          </div>
+
+          <h3 style="font-size: 16px; margin: 24px 0 8px;">8.3 การเข้าใช้งานผ่าน Browser & URLs</h3>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>ระบบ</th>
+                  <th>URL สำหรับเปิดใน Browser</th>
+                  <th>หมายเหตุ</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Main Entry (Portal)</strong></td>
+                  <td><a href="http://localhost:9999/" target="_blank" style="color: var(--primary);">http://localhost:9999/</a></td>
+                  <td>ระบบจะ Redirect 302 ไปยังหน้า <code>/lab/</code> อัตโนมัติ</td>
+                </tr>
+                <tr>
+                  <td><strong>Web App 1 (Lab Booking)</strong></td>
+                  <td><a href="http://localhost:9999/lab/" target="_blank" style="color: var(--primary);">http://localhost:9999/lab/</a></td>
+                  <td>หน้าหลักสาธารณะ แสดงสถานะเครื่องคอมพิวเตอร์</td>
+                </tr>
+                <tr>
+                  <td><strong>Web App 2 (Equipment Loan)</strong></td>
+                  <td><a href="http://localhost:9999/equipment/" target="_blank" style="color: var(--primary);">http://localhost:9999/equipment/</a></td>
+                  <td>หน้าหลักรายการอุปกรณ์ไอทีสำหรับยืม</td>
+                </tr>
+                <tr>
+                  <td><strong>Central Auth Login</strong></td>
+                  <td><a href="http://localhost:9999/auth/login" target="_blank" style="color: var(--primary);">http://localhost:9999/auth/login</a></td>
+                  <td>หน้าฟอร์มเข้าสู่ระบบกลาง</td>
+                </tr>
+                <tr>
+                  <td><strong>pgAdmin 4 (Database GUI)</strong></td>
+                  <td><a href="http://localhost:5050" target="_blank" style="color: var(--primary);">http://localhost:5050</a></td>
+                  <td>Login: <code>admin@example.com</code> / <code>admin_password</code></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3 style="font-size: 16px; margin: 24px 0 8px;">8.4 การเพิ่มผู้ใช้ใหม่ลงในระบบ</h3>
+          <p style="color: var(--text-muted); font-size: 13.5px;">สามารถยิงคำสั่ง SQL เข้า PostgreSQL โดยตรงได้ดังนี้:</p>
+
+          <div class="code-wrapper">
+            <div class="code-header">
+              <span>Terminal Bash</span>
+              <button class="btn-copy" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre><code># เพิ่มผู้ใช้แบบเข้ารหัส Bcrypt
+docker exec -it sso-postgres psql -U radius -d radius -c "
+INSERT INTO users (username, password, role) 
+VALUES ('somchai', crypt('mypassword123', gen_salt('bf')), 'student');
+"</code></pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 9: Codebase Map -->
+      <section id="codebase-map" class="section">
+        <div class="section-header">
+          <div class="section-icon">📂</div>
+          <h2 class="section-title">9. ผังโครงสร้างไฟล์ในโปรเจกต์ (Codebase Map)</h2>
+        </div>
+        <div class="card">
+          <p style="margin-bottom: 14px;">โครงสร้างไฟล์ทั้งหมดในโฟลเดอร์ <code>sso-app</code> และหน้าที่ของแต่ละองค์ประกอบ:</p>
+
+          <div class="file-tree">
+<span class="dir">sso-app/</span>
+├── <span class="file">docker-compose.yml</span>         <span class="desc"># ไฟล์ตั้งค่า Microservices ทั้งหมด 7 คอนเทนเนอร์ และ Docker Network</span>
+├── <span class="file">README.md</span>                  <span class="desc"># คู่มือฉบับภาษาอังกฤษ (System Architecture, Testing, API Integration)</span>
+├── <span class="file">README_TH.md</span>               <span class="desc"># คู่มือฉบับภาษาไทย (Quick Start, SQL User Management)</span>
+├── <span class="file">POSTGRES_SETUP.md</span>          <span class="desc"># คู่มือการติดตั้ง PostgreSQL Schema และ Bcrypt Password</span>
+│
+├── <span class="dir">central-auth/</span>              <span class="desc"># บริการยืนยันตัวตนส่วนกลาง (FastAPI)</span>
+│   ├── <span class="file">main.py</span>                <span class="desc"># โค้ดหลัก: Login UI, RADIUS Packet Sending, JWT Token Issuing</span>
+│   ├── <span class="file">Dockerfile</span>             <span class="desc"># สร้าง Image ของ Central Auth (Python 3.11-slim)</span>
+│   ├── <span class="file">requirements.txt</span>       <span class="desc"># Dependencies: fastapi, uvicorn, pyjwt, pyrad, jinja2</span>
+│   ├── <span class="file">dictionary</span>             <span class="desc"># ไฟล์พจนานุกรม RADIUS Attributes สำหรับ PyRAD Client</span>
+│   └── <span class="file">Config.txt</span>             <span class="desc"># บันทึกรูปแบบคุกกี้และคีย์ลับของระบบ</span>
+│
+├── <span class="dir">database/</span>                  <span class="desc"># โฟลเดอร์เก็บฐานข้อมูล</span>
+│   ├── <span class="file">init.sql</span>               <span class="desc"># สคริปต์สร้างตาราง `users` และ Seed ข้อมูลใน PostgreSQL</span>
+│   ├── <span class="file">web-app-1.db</span>           <span class="desc"># ฐานข้อมูล SQLite สำหรับระบบจองแล็บ (ตาราง `lab_computers`)</span>
+│   └── <span class="file">web-app-2.db</span>           <span class="desc"># ฐานข้อมูล SQLite สำหรับระบบยืมของ (ตาราง `equipments`)</span>
+│
+├── <span class="dir">nginx/</span>                     <span class="desc"># การตั้งค่า Reverse Proxy</span>
+│   └── <span class="file">nginx.conf</span>             <span class="desc"># Routing Rule ส่งต่อคำขอ URL ไปยังพอร์ต 4000, 5000, 5001</span>
+│
+├── <span class="dir">radius/</span>                    <span class="desc"># การตั้งค่าเซิร์ฟเวอร์ FreeRADIUS</span>
+│   ├── <span class="file">Dockerfile</span>             <span class="desc"># สร้าง Image FreeRADIUS พร้อมติดตั้ง PostgreSQL SQL Driver</span>
+│   └── <span class="dir">config/</span>
+│       ├── <span class="file">radiusd.conf</span>       <span class="desc"># คอนฟิกหลักของ FreeRADIUS กำหนด Port และ Modules</span>
+│       ├── <span class="file">sql.conf</span>           <span class="desc"># เชื่อมต่อ PostgreSQL และ Authorize Query ตรวจสอบ Bcrypt/Plaintext</span>
+│       ├── <span class="file">clients.conf</span>       <span class="desc"># กำหนด RADIUS Client IP และ Shared Secret (sso_secret_123)</span>
+│       └── <span class="file">users</span>              <span class="desc"># ผู้ใช้ทดสอบสำรองระดับ Local File (onefirst, bob, john)</span>
+│
+├── <span class="dir">radtest/</span>                   <span class="desc"># เครื่องมือทดสอบและเชื่อมต่อ GUI</span>
+│   ├── <span class="file">servers.json</span>           <span class="desc"># Auto-connect setting สำหรับ pgAdmin ให้เห็น DB อัตโนมัติ</span>
+│   └── <span class="file">init.sql</span>               <span class="desc"># สคริปต์ SQL เสริม</span>
+│
+├── <span class="dir">web-app-1/</span>                 <span class="desc"># ระบบจองห้องแล็บคอมพิวเตอร์ (Port 5000)</span>
+│   ├── <span class="file">main.py</span>                <span class="desc"># FastAPI Server: เช็คคุกกี้ JWT, จองเครื่อง, คืนเครื่อง</span>
+│   ├── <span class="file">Dockerfile</span>             <span class="desc"># Container build config</span>
+│   ├── <span class="dir">public/</span><span class="file">style.css</span>       <span class="desc"># ดีไซน์ CSS รองรับทั้ง Dark / Light Theme</span>
+│   └── <span class="dir">views/</span>                 <span class="desc"># หน้า HTML: home.html, booking.html, index.html</span>
+│
+└── <span class="dir">web-app-2/</span>                 <span class="desc"># ระบบยืมคืนอุปกรณ์ไอที (Port 5001)</span>
+    ├── <span class="file">main.py</span>                <span class="desc"># FastAPI Server: เช็คคุกกี้ JWT, ยืมอุปกรณ์, คืนอุปกรณ์</span>
+    ├── <span class="file">Dockerfile</span>             <span class="desc"># Container build config</span>
+    ├── <span class="dir">public/</span><span class="file">style.css</span>       <span class="desc"># ดีไซน์ CSS สำหรับระบบอุปกรณ์</span>
+    └── <span class="dir">views/</span>                 <span class="desc"># หน้า HTML: home.html, borrow.html</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 10: Security & Code Refactoring -->
+      <section id="security" class="section">
+        <div class="section-header">
+          <div class="section-icon">🛡️</div>
+          <h2 class="section-title">10. จุดเด่นด้านความปลอดภัยและการปรับปรุงโค้ด (Refactoring Highlights)</h2>
+        </div>
+        <div class="card">
+          <div class="arch-grid">
+            <div class="arch-card">
+              <div class="arch-title" style="color: var(--primary);">🔐 Dynamic Password Detection</div>
+              <div class="arch-desc" style="margin-top: 8px;">
+                FreeRADIUS ใช้ SQL query ดักจับอักขระตัวแรกของรหัสผ่าน:
+                หากขึ้นต้นด้วย <code>$</code> จะสลับไปใช้ <code>Crypt-Password</code> สำหรับ Bcrypt Hashing ทันที และหากเป็นข้อความปกติจะใช้ <code>Cleartext-Password</code> ทำให้มีความยืดหยุ่นสูง
+              </div>
+            </div>
+
+            <div class="arch-card">
+              <div class="arch-title" style="color: var(--success);">🍪 HttpOnly & SameSite Cookie</div>
+              <div class="arch-desc" style="margin-top: 8px;">
+                JWT Token จัดเก็บในคุกกี้ <code>sso_token</code> แบบ <code>HttpOnly=True</code> ป้องกันการโจมตีประเภท Cross-Site Scripting (XSS) ขโมย Token ผ่าน JavaScript และตั้งค่า <code>SameSite="lax"</code> ป้องกัน CSRF
+              </div>
+            </div>
+
+            <div class="arch-card">
+              <div class="arch-title" style="color: var(--purple);">⚡ Single-Origin Reverse Proxy</div>
+              <div class="arch-desc" style="margin-top: 8px;">
+                Nginx รวมบริการทั้งหมดให้อยู่บน Port <code>9999</code> ภายใต้โดเมนเดียวกัน ทำให้ไม่มีปัญหาเรื่อง Third-party Cookie Blocking ในเบราว์เซอร์ยุคใหม่ (Chrome, Safari, Firefox)
+              </div>
+            </div>
+
+            <div class="arch-card">
+              <div class="arch-title" style="color: var(--warning);">🧹 Clean Code & Guard Clauses</div>
+              <div class="arch-desc" style="margin-top: 8px;">
+                โค้ดใน <code>web-app-1</code> และ <code>web-app-2</code> ได้รับการ Refactor ลบ dead code, แยก Database Helper ชัดเจน, เปลี่ยน Magic Strings เป็น Constants, และใช้ Early Return Guard Clauses เพื่อความปลอดภัย
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Footer -->
+      <footer class="footer">
+        <p>เอกสารสรุปโครงการ SSO Microservices Architecture • จัดทำขึ้นสำหรับอ่านและศึกษาในเครื่องนี้เท่านั้น</p>
+        <p style="margin-top: 4px; font-size: 12px;">Local Workspace: /home/fah/Desktop/sso-app • Local Branch: FAH</p>
+      </footer>
+
+    </main>
+  </div>
+
+  <script>
+    // Theme Toggle Functionality
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute('data-theme');
+      const target = current === 'light' ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', target);
+      document.getElementById('themeIcon').innerText = target === 'light' ? '🌙' : '☀️';
+      document.getElementById('themeText').innerText = target === 'light' ? 'ธีมมืด' : 'ธีมสว่าง';
+      localStorage.setItem('sso_summary_theme', target);
+    }
+
+    // Restore Theme Preference
+    const savedTheme = localStorage.getItem('sso_summary_theme');
+    if (savedTheme) {
+      document.documentElement.setAttribute('data-theme', savedTheme);
+      document.getElementById('themeIcon').innerText = savedTheme === 'light' ? '🌙' : '☀️';
+      document.getElementById('themeText').innerText = savedTheme === 'light' ? 'ธีมมืด' : 'ธีมสว่าง';
+    }
+
+    // Copy to Clipboard
+    function copyCode(btn) {
+      const wrapper = btn.closest('.code-wrapper');
+      const code = wrapper.querySelector('pre code').innerText;
+      navigator.clipboard.writeText(code).then(() => {
+        const originalText = btn.innerText;
+        btn.innerText = 'Copied!';
+        btn.style.color = '#10b981';
+        setTimeout(() => {
+          btn.innerText = originalText;
+          btn.style.color = '';
+        }, 2000);
+      });
+    }
+  </script>
+</body>
+</html>
